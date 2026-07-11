@@ -1,5 +1,6 @@
 package com.study.prep.backend.service.impl;
 
+import com.study.prep.backend.dto.PatchVehicleRequest;
 import com.study.prep.backend.dto.VehicleRequest;
 import com.study.prep.backend.dto.VehicleResponse;
 import com.study.prep.backend.entity.Vehicle;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -27,8 +29,9 @@ public class VehicleServiceImpl implements VehicleService {
 
     @Override
     public VehicleResponse getVehicleById(Long id) {
-        // TODO: implement
-        return null;
+        Vehicle vehicle = vehicleRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
+        return toResponse(vehicle);
     }
 
     @Override
@@ -58,6 +61,21 @@ public class VehicleServiceImpl implements VehicleService {
 
         Vehicle updated = vehicleRepository.save(vehicle);
         return toResponse(updated);
+    }
+
+    @Override
+    public VehicleResponse patchVehicle(Long id, PatchVehicleRequest request) {
+        Vehicle vehicle = vehicleRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
+
+        if (request.getMake() != null) vehicle.setMake(request.getMake());
+        if (request.getModel() != null) vehicle.setModel(request.getModel());
+        if (request.getCategory() != null) vehicle.setCategory(request.getCategory());
+        if (request.getPrice() != null) vehicle.setPrice(request.getPrice());
+        if (request.getQuantity() != null) vehicle.setQuantity(request.getQuantity());
+
+        Vehicle patched = vehicleRepository.save(vehicle);
+        return toResponse(patched);
     }
 
     @Override

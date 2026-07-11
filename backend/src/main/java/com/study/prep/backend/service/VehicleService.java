@@ -1,5 +1,6 @@
 package com.study.prep.backend.service;
 
+import com.study.prep.backend.dto.PatchVehicleRequest;
 import com.study.prep.backend.dto.VehicleRequest;
 import com.study.prep.backend.dto.VehicleResponse;
 
@@ -15,6 +16,8 @@ public interface VehicleService {
     VehicleResponse createVehicle(VehicleRequest request);
 
     VehicleResponse updateVehicle(Long id, VehicleRequest request);
+
+    VehicleResponse patchVehicle(Long id, PatchVehicleRequest request);
 
     void deleteVehicle(Long id);
 
