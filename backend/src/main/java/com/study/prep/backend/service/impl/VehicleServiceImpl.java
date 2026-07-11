@@ -83,7 +83,16 @@ public class VehicleServiceImpl implements VehicleService {
 
     @Override
     public VehicleResponse purchaseVehicle(Long id) {
-        return null;
+        Vehicle vehicle = vehicleRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
+
+        if (vehicle.getQuantity() == 0) {
+            throw new IllegalStateException("Vehicle is out of stock: " + id);
+        }
+
+        vehicle.setQuantity(vehicle.getQuantity() - 1);
+        Vehicle saved = vehicleRepository.save(vehicle);
+        return toResponse(saved);
     }
 
     private VehicleResponse toResponse(Vehicle vehicle) {
