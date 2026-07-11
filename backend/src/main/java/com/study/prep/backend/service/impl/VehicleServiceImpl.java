@@ -71,7 +71,14 @@ public class VehicleServiceImpl implements VehicleService {
     @Override
     public List<VehicleResponse> searchVehicles(String make, String model, String category,
                                                  BigDecimal minPrice, BigDecimal maxPrice) {
-      return null;
+        return vehicleRepository.findAll().stream()
+                .filter(v -> make == null || v.getMake().equalsIgnoreCase(make))
+                .filter(v -> model == null || v.getModel().equalsIgnoreCase(model))
+                .filter(v -> category == null || v.getCategory().equalsIgnoreCase(category))
+                .filter(v -> minPrice == null || v.getPrice().compareTo(minPrice) >= 0)
+                .filter(v -> maxPrice == null || v.getPrice().compareTo(maxPrice) <= 0)
+                .map(this::toResponse)
+                .toList();
     }
 
     private VehicleResponse toResponse(Vehicle vehicle) {
