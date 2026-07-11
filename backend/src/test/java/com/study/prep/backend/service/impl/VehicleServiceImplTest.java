@@ -385,4 +385,77 @@ class VehicleServiceImplTest {
 
         verify(vehicleRepository, never()).save(any());
     }
+
+    @Test
+    void restockVehicle_shouldRestockSuccessfully() {
+        Long vehicleId = 1L;
+        Integer restockQuantity = 5;
+
+        Vehicle vehicle = Vehicle.builder()
+                .id(vehicleId)
+                .make("Toyota")
+                .model("Camry")
+                .category("Sedan")
+                .price(new BigDecimal("25000.00"))
+                .quantity(10)
+                .build();
+
+        Vehicle savedVehicle = Vehicle.builder()
+                .id(vehicleId)
+                .make("Toyota")
+                .model("Camry")
+                .category("Sedan")
+                .price(new BigDecimal("25000.00"))
+                .quantity(15)
+                .build();
+
+        when(vehicleRepository.findById(vehicleId)).thenReturn(Optional.of(vehicle));
+        when(vehicleRepository.save(any(Vehicle.class))).thenReturn(savedVehicle);
+
+        VehicleResponse response = vehicleService.restockVehicle(vehicleId, restockQuantity);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getQuantity()).isEqualTo(15);
+
+        verify(vehicleRepository, times(1)).save(any(Vehicle.class));
+    }
+
+    @Test
+    void restockVehicle_shouldThrowResourceNotFoundException_whenVehicleDoesNotExist() {
+        Long vehicleId = 99L;
+
+        when(vehicleRepository.findById(vehicleId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> vehicleService.restockVehicle(vehicleId, 5))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Vehicle not found");
+
+        verify(vehicleRepository, never()).save(any());
+    }
+
+    @Test
+    void restockVehicle_shouldThrowIllegalArgumentException_whenQuantityIsZeroOrNegative() {
+        Long vehicleId = 1L;
+
+        Vehicle vehicle = Vehicle.builder()
+                .id(vehicleId)
+                .make("Toyota")
+                .model("Camry")
+                .category("Sedan")
+                .price(new BigDecimal("25000.00"))
+                .quantity(10)
+                .build();
+
+        when(vehicleRepository.findById(vehicleId)).thenReturn(Optional.of(vehicle));
+
+        assertThatThrownBy(() -> vehicleService.restockVehicle(vehicleId, 0))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("quantity");
+
+        assertThatThrownBy(() -> vehicleService.restockVehicle(vehicleId, -3))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("quantity");
+
+        verify(vehicleRepository, never()).save(any());
+    }
 }

@@ -22,4 +22,6 @@ public interface VehicleService {
                                          BigDecimal minPrice, BigDecimal maxPrice);
 
     VehicleResponse purchaseVehicle(Long id);
+
+    VehicleResponse restockVehicle(Long vehicleId, Integer quantity);
 }

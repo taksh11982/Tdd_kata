@@ -95,6 +95,11 @@ public class VehicleServiceImpl implements VehicleService {
         return toResponse(saved);
     }
 
+    @Override
+    public VehicleResponse restockVehicle(Long vehicleId, Integer quantity) {
+        return null;
+    }
+
     private VehicleResponse toResponse(Vehicle vehicle) {
         return new VehicleResponse(
                 vehicle.getId(),
