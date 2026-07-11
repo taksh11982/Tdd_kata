@@ -9,6 +9,7 @@ import com.study.prep.backend.service.VehicleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Service
@@ -65,6 +66,12 @@ public class VehicleServiceImpl implements VehicleService {
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
 
         vehicleRepository.deleteById(id);
+    }
+
+    @Override
+    public List<VehicleResponse> searchVehicles(String make, String model, String category,
+                                                 BigDecimal minPrice, BigDecimal maxPrice) {
+      return null;
     }
 
     private VehicleResponse toResponse(Vehicle vehicle) {

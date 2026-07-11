@@ -176,4 +176,145 @@ class VehicleServiceImplTest {
         verify(vehicleRepository, times(1)).findById(vehicleId);
         verify(vehicleRepository, never()).deleteById(any());
     }
+
+    @Test
+    void searchVehicles_byMake_shouldReturnMatchingVehicles() {
+        Vehicle toyota1 = Vehicle.builder()
+                .id(1L).make("Toyota").model("Camry").category("Sedan")
+                .price(new BigDecimal("25000.00")).quantity(10).build();
+
+        Vehicle toyota2 = Vehicle.builder()
+                .id(2L).make("Toyota").model("Corolla").category("Sedan")
+                .price(new BigDecimal("22000.00")).quantity(5).build();
+
+        Vehicle honda = Vehicle.builder()
+                .id(3L).make("Honda").model("Civic").category("Sedan")
+                .price(new BigDecimal("23000.00")).quantity(8).build();
+
+        when(vehicleRepository.findAll()).thenReturn(List.of(toyota1, toyota2, honda));
+
+        List<VehicleResponse> results = vehicleService.searchVehicles("Toyota", null, null, null, null);
+
+        assertThat(results).hasSize(2);
+        assertThat(results).allMatch(v -> v.getMake().equals("Toyota"));
+    }
+
+    @Test
+    void searchVehicles_byModel_shouldReturnMatchingVehicles() {
+        Vehicle camry = Vehicle.builder()
+                .id(1L).make("Toyota").model("Camry").category("Sedan")
+                .price(new BigDecimal("25000.00")).quantity(10).build();
+
+        Vehicle civic = Vehicle.builder()
+                .id(2L).make("Honda").model("Civic").category("Sedan")
+                .price(new BigDecimal("23000.00")).quantity(5).build();
+
+        when(vehicleRepository.findAll()).thenReturn(List.of(camry, civic));
+
+        List<VehicleResponse> results = vehicleService.searchVehicles(null, "Camry", null, null, null);
+
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).getModel()).isEqualTo("Camry");
+    }
+
+    @Test
+    void searchVehicles_byCategory_shouldReturnMatchingVehicles() {
+        Vehicle sedan = Vehicle.builder()
+                .id(1L).make("Toyota").model("Camry").category("Sedan")
+                .price(new BigDecimal("25000.00")).quantity(10).build();
+
+        Vehicle suv = Vehicle.builder()
+                .id(2L).make("Toyota").model("RAV4").category("SUV")
+                .price(new BigDecimal("30000.00")).quantity(5).build();
+
+        Vehicle truck = Vehicle.builder()
+                .id(3L).make("Ford").model("F-150").category("Truck")
+                .price(new BigDecimal("35000.00")).quantity(3).build();
+
+        when(vehicleRepository.findAll()).thenReturn(List.of(sedan, suv, truck));
+
+        List<VehicleResponse> results = vehicleService.searchVehicles(null, null, "Sedan", null, null);
+
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).getCategory()).isEqualTo("Sedan");
+    }
+
+    @Test
+    void searchVehicles_byPriceRange_shouldReturnMatchingVehicles() {
+        Vehicle cheap = Vehicle.builder()
+                .id(1L).make("Honda").model("Civic").category("Sedan")
+                .price(new BigDecimal("20000.00")).quantity(10).build();
+
+        Vehicle mid = Vehicle.builder()
+                .id(2L).make("Toyota").model("Camry").category("Sedan")
+                .price(new BigDecimal("25000.00")).quantity(5).build();
+
+        Vehicle expensive = Vehicle.builder()
+                .id(3L).make("BMW").model("X5").category("SUV")
+                .price(new BigDecimal("60000.00")).quantity(2).build();
+
+        when(vehicleRepository.findAll()).thenReturn(List.of(cheap, mid, expensive));
+
+        List<VehicleResponse> results = vehicleService.searchVehicles(null, null, null,
+                new BigDecimal("20000.00"), new BigDecimal("30000.00"));
+
+        assertThat(results).hasSize(2);
+        assertThat(results).allMatch(v ->
+                v.getPrice().compareTo(new BigDecimal("20000.00")) >= 0 &&
+                v.getPrice().compareTo(new BigDecimal("30000.00")) <= 0);
+    }
+
+    @Test
+    void searchVehicles_withMultipleFilters_shouldReturnMatchingVehicles() {
+        Vehicle toyotaCamry = Vehicle.builder()
+                .id(1L).make("Toyota").model("Camry").category("Sedan")
+                .price(new BigDecimal("25000.00")).quantity(10).build();
+
+        Vehicle toyotaCorolla = Vehicle.builder()
+                .id(2L).make("Toyota").model("Corolla").category("Sedan")
+                .price(new BigDecimal("22000.00")).quantity(5).build();
+
+        Vehicle hondaCivic = Vehicle.builder()
+                .id(3L).make("Honda").model("Civic").category("Sedan")
+                .price(new BigDecimal("23000.00")).quantity(8).build();
+
+        when(vehicleRepository.findAll()).thenReturn(List.of(toyotaCamry, toyotaCorolla, hondaCivic));
+
+        List<VehicleResponse> results = vehicleService.searchVehicles("Toyota", null, "Sedan",
+                new BigDecimal("23000.00"), new BigDecimal("26000.00"));
+
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).getMake()).isEqualTo("Toyota");
+        assertThat(results.get(0).getModel()).isEqualTo("Camry");
+    }
+
+    @Test
+    void searchVehicles_withNoFilters_shouldReturnAllVehicles() {
+        Vehicle vehicle1 = Vehicle.builder()
+                .id(1L).make("Toyota").model("Camry").category("Sedan")
+                .price(new BigDecimal("25000.00")).quantity(10).build();
+
+        Vehicle vehicle2 = Vehicle.builder()
+                .id(2L).make("Honda").model("Civic").category("Sedan")
+                .price(new BigDecimal("23000.00")).quantity(5).build();
+
+        when(vehicleRepository.findAll()).thenReturn(List.of(vehicle1, vehicle2));
+
+        List<VehicleResponse> results = vehicleService.searchVehicles(null, null, null, null, null);
+
+        assertThat(results).hasSize(2);
+    }
+
+    @Test
+    void searchVehicles_withNoMatches_shouldReturnEmptyList() {
+        Vehicle vehicle = Vehicle.builder()
+                .id(1L).make("Toyota").model("Camry").category("Sedan")
+                .price(new BigDecimal("25000.00")).quantity(10).build();
+
+        when(vehicleRepository.findAll()).thenReturn(List.of(vehicle));
+
+        List<VehicleResponse> results = vehicleService.searchVehicles("BMW", null, null, null, null);
+
+        assertThat(results).isEmpty();
+    }
 }
