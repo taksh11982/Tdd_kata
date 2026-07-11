@@ -4,6 +4,7 @@ import Navbar from './components/Navbar/Navbar';
 import Login from './pages/Login/Login';
 import Register from './pages/Register/Register';
 import Dashboard from './pages/Dashboard/Dashboard';
+import Admin from './pages/Admin/Admin';
 
 const ProtectedRoute = ({ children }) => {
   const { token, loading } = useAuth();
@@ -11,10 +12,18 @@ const ProtectedRoute = ({ children }) => {
   return token ? children : <Navigate to="/login" />;
 };
 
-const GuestRoute = ({ children }) => {
-  const { token, loading } = useAuth();
+const AdminRoute = ({ children }) => {
+  const { token, loading, isAdmin } = useAuth();
   if (loading) return null;
-  return !token ? children : <Navigate to="/dashboard" />;
+  if (!token) return <Navigate to="/login" />;
+  if (!isAdmin) return <Navigate to="/dashboard" />;
+  return children;
+};
+
+const GuestRoute = ({ children }) => {
+  const { token, loading, isAdmin } = useAuth();
+  if (loading) return null;
+  return !token ? children : <Navigate to={isAdmin ? '/admin' : '/dashboard'} />;
 };
 
 function App() {
@@ -27,6 +36,7 @@ function App() {
             <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
             <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
             <Route path="/" element={<Navigate to="/dashboard" />} />
             <Route path="*" element={<Navigate to="/dashboard" />} />
           </Routes>
