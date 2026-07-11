@@ -3,6 +3,7 @@ package com.study.prep.backend.service.impl;
 import com.study.prep.backend.dto.VehicleRequest;
 import com.study.prep.backend.dto.VehicleResponse;
 import com.study.prep.backend.entity.Vehicle;
+import com.study.prep.backend.exception.ResourceNotFoundException;
 import com.study.prep.backend.repository.VehicleRepository;
 import com.study.prep.backend.service.VehicleService;
 import lombok.RequiredArgsConstructor;
@@ -45,13 +46,25 @@ public class VehicleServiceImpl implements VehicleService {
 
     @Override
     public VehicleResponse updateVehicle(Long id, VehicleRequest request) {
-        // TODO: implement
-        return null;
+        Vehicle vehicle = vehicleRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
+
+        vehicle.setMake(request.getMake());
+        vehicle.setModel(request.getModel());
+        vehicle.setCategory(request.getCategory());
+        vehicle.setPrice(request.getPrice());
+        vehicle.setQuantity(request.getQuantity());
+
+        Vehicle updated = vehicleRepository.save(vehicle);
+        return toResponse(updated);
     }
 
     @Override
     public void deleteVehicle(Long id) {
-        // TODO: implement
+        Vehicle vehicle = vehicleRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
+
+        vehicleRepository.deleteById(id);
     }
 
     private VehicleResponse toResponse(Vehicle vehicle) {
