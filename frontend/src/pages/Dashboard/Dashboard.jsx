@@ -1,8 +1,9 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import vehicleService from '../../services/vehicleService';
 import SearchBar from '../../components/SearchBar/SearchBar';
+import Pagination from '../../components/Pagination/Pagination';
 
 const categoryIcons = {
   Sedan: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0h4',
@@ -50,11 +51,25 @@ const Dashboard = () => {
   const [error, setError] = useState('');
   const [purchasing, setPurchasing] = useState(null);
   const [toast, setToast] = useState(null);
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [stats, setStats] = useState({ totalVehicles: 0, inStock: 0, outOfStock: 0, categories: 0 });
 
-  const fetchVehicles = useCallback(async () => {
+  const fetchVehicles = useCallback(async (p = page) => {
     try {
-      const data = await vehicleService.getAll();
-      setVehicles(data);
+      const [paged, statsData] = await Promise.all([
+        vehicleService.getAll(p, 6),
+        vehicleService.getStats(),
+      ]);
+      setVehicles(paged.content);
+      setTotalPages(paged.totalPages);
+      setPage(paged.page);
+      setStats({
+        totalVehicles: statsData.totalVehicles,
+        inStock: statsData.totalVehicles - statsData.outOfStock,
+        outOfStock: statsData.outOfStock,
+        categories: statsData.categories,
+      });
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load vehicles');
     } finally {
@@ -63,16 +78,13 @@ const Dashboard = () => {
   }, []);
 
   useEffect(() => {
-    fetchVehicles();
+    fetchVehicles(0);
   }, [fetchVehicles]);
 
-  const stats = useMemo(() => {
-    const total = vehicles.length;
-    const inStock = vehicles.filter((v) => v.quantity > 0).length;
-    const outOfStock = vehicles.filter((v) => v.quantity === 0).length;
-    const categories = new Set(vehicles.map((v) => v.category)).size;
-    return { total, inStock, outOfStock, categories };
-  }, [vehicles]);
+  const handlePageChange = (newPage) => {
+    setLoading(true);
+    fetchVehicles(newPage);
+  };
 
   const handlePurchase = async (vehicle) => {
     setPurchasing(vehicle.id);
@@ -82,6 +94,7 @@ const Dashboard = () => {
         prev.map((v) => (v.id === updated.id ? updated : v))
       );
       setToast({ message: `${updated.make} ${updated.model} purchased successfully`, type: 'success' });
+      fetchVehicles(page);
     } catch (err) {
       setToast({ message: err.response?.data?.message || 'Purchase failed', type: 'error' });
     } finally {
@@ -95,8 +108,14 @@ const Dashboard = () => {
     try {
       const data = Object.keys(params).length > 0
         ? await vehicleService.search(params)
-        : await vehicleService.getAll();
-      setVehicles(data);
+        : await vehicleService.getAll(0, 1000);
+      if (Array.isArray(data)) {
+        setVehicles(data);
+        setTotalPages(1);
+      } else {
+        setVehicles(data.content);
+        setTotalPages(data.totalPages);
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Search failed');
     } finally {
@@ -138,7 +157,7 @@ const Dashboard = () => {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
         {[
-          { label: 'Total Vehicles', value: stats.total, gradient: 'from-blue-500 to-indigo-600', glow: 'shadow-blue-500/20' },
+          { label: 'Total Vehicles', value: stats.totalVehicles, gradient: 'from-blue-500 to-indigo-600', glow: 'shadow-blue-500/20' },
           { label: 'In Stock', value: stats.inStock, gradient: 'from-emerald-500 to-teal-600', glow: 'shadow-emerald-500/20' },
           { label: 'Out of Stock', value: stats.outOfStock, gradient: 'from-rose-500 to-pink-600', glow: 'shadow-rose-500/20' },
           { label: 'Categories', value: stats.categories, gradient: 'from-amber-500 to-orange-600', glow: 'shadow-amber-500/20' },
@@ -192,95 +211,98 @@ const Dashboard = () => {
           <p className="text-gray-600 text-sm mt-1">Vehicles will appear here once added</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {vehicles.map((vehicle) => {
-            const outOfStock = vehicle.quantity === 0;
-            const isPurchasing = purchasing === vehicle.id;
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {vehicles.map((vehicle) => {
+              const outOfStock = vehicle.quantity === 0;
+              const isPurchasing = purchasing === vehicle.id;
 
-            return (
-              <div
-                key={vehicle.id}
-                className="group bg-gray-900 border border-gray-800 rounded-2xl p-6 hover:border-gray-700 hover:shadow-xl hover:shadow-black/20 transition-all duration-300 flex flex-col"
-              >
-                <div className="flex items-start justify-between mb-5">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500/20 to-indigo-500/20 border border-blue-500/10 flex items-center justify-center group-hover:from-blue-500/30 group-hover:to-indigo-500/30 transition-all">
-                      <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d={getCategoryIcon(vehicle.category)} />
-                      </svg>
+              return (
+                <div
+                  key={vehicle.id}
+                  className="group bg-gray-900 border border-gray-800 rounded-2xl p-6 hover:border-gray-700 hover:shadow-xl hover:shadow-black/20 transition-all duration-300 flex flex-col"
+                >
+                  <div className="flex items-start justify-between mb-5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500/20 to-indigo-500/20 border border-blue-500/10 flex items-center justify-center group-hover:from-blue-500/30 group-hover:to-indigo-500/30 transition-all">
+                        <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d={getCategoryIcon(vehicle.category)} />
+                        </svg>
+                      </div>
+                      <div>
+                        <h3 className="text-white font-semibold leading-tight">
+                          {vehicle.make} {vehicle.model}
+                        </h3>
+                        <span className="text-xs text-gray-500 font-medium uppercase tracking-wider">
+                          {vehicle.category}
+                        </span>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-white font-semibold leading-tight">
-                        {vehicle.make} {vehicle.model}
-                      </h3>
-                      <span className="text-xs text-gray-500 font-medium uppercase tracking-wider">
-                        {vehicle.category}
+                  </div>
+
+                  <div className="space-y-3 flex-1">
+                    <div className="flex items-center justify-between py-2.5 border-t border-gray-800/60">
+                      <span className="text-sm text-gray-400">Price</span>
+                      <span className="text-lg font-bold text-white">
+                        ${vehicle.price?.toLocaleString('en-US', { minimumFractionDigits: 0 })}
                       </span>
                     </div>
-                  </div>
-                </div>
 
-                <div className="space-y-3 flex-1">
-                  <div className="flex items-center justify-between py-2.5 border-t border-gray-800/60">
-                    <span className="text-sm text-gray-400">Price</span>
-                    <span className="text-lg font-bold text-white">
-                      ${vehicle.price?.toLocaleString('en-US', { minimumFractionDigits: 0 })}
-                    </span>
+                    <div className="flex items-center justify-between py-2.5 border-t border-gray-800/60">
+                      <span className="text-sm text-gray-400">Quantity</span>
+                      {outOfStock ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-500/10 text-red-400 text-sm font-medium">
+                          <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+                          Out of stock
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 text-sm font-medium">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                          {vehicle.quantity} units
+                        </span>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="flex items-center justify-between py-2.5 border-t border-gray-800/60">
-                    <span className="text-sm text-gray-400">Quantity</span>
+                  <div className="mt-5 pt-4 border-t border-gray-800/60">
                     {outOfStock ? (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-500/10 text-red-400 text-sm font-medium">
-                        <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
-                        Out of stock
-                      </span>
+                      <button
+                        disabled
+                        className="w-full py-2.5 rounded-xl text-sm font-medium bg-gray-800 text-gray-600 cursor-not-allowed border border-gray-700/50"
+                      >
+                        Out of Stock
+                      </button>
                     ) : (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 text-sm font-medium">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                        {vehicle.quantity} units
-                      </span>
+                      <button
+                        onClick={() => handlePurchase(vehicle)}
+                        disabled={isPurchasing}
+                        className="w-full py-2.5 rounded-xl text-sm font-medium bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:from-emerald-500 hover:to-teal-500 focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2"
+                      >
+                        {isPurchasing ? (
+                          <>
+                            <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                            </svg>
+                            Purchasing...
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
+                            </svg>
+                            Purchase
+                          </>
+                        )}
+                      </button>
                     )}
                   </div>
                 </div>
-
-                <div className="mt-5 pt-4 border-t border-gray-800/60">
-                  {outOfStock ? (
-                    <button
-                      disabled
-                      className="w-full py-2.5 rounded-xl text-sm font-medium bg-gray-800 text-gray-600 cursor-not-allowed border border-gray-700/50"
-                    >
-                      Out of Stock
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => handlePurchase(vehicle)}
-                      disabled={isPurchasing}
-                      className="w-full py-2.5 rounded-xl text-sm font-medium bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:from-emerald-500 hover:to-teal-500 focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2"
-                    >
-                      {isPurchasing ? (
-                        <>
-                          <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                          </svg>
-                          Purchasing...
-                        </>
-                      ) : (
-                        <>
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
-                          </svg>
-                          Purchase
-                        </>
-                      )}
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+          <Pagination page={page} totalPages={totalPages} onPageChange={handlePageChange} />
+        </>
       )}
     </div>
   );

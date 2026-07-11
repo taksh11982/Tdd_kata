@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import vehicleService from '../../services/vehicleService';
+import Pagination from '../../components/Pagination/Pagination';
 
 const emptyVehicle = { make: '', model: '', category: '', price: '', quantity: '' };
 
@@ -120,6 +121,9 @@ const Admin = () => {
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [stats, setStats] = useState({ totalVehicles: 0, totalStock: 0, lowStock: 0, outOfStock: 0 });
 
   const [showCreate, setShowCreate] = useState(false);
   const [editVehicle, setEditVehicle] = useState(null);
@@ -130,57 +134,64 @@ const Admin = () => {
 
   const showToast = (message, type = 'success') => setToast({ message, type });
 
-  const fetchVehicles = async () => {
+  const fetchVehicles = useCallback(async (p = page) => {
     try {
-      const data = await vehicleService.getAll();
-      setVehicles(data);
+      const [paged, statsData] = await Promise.all([
+        vehicleService.getAll(p, 6),
+        vehicleService.getStats(),
+      ]);
+      setVehicles(paged.content);
+      setTotalPages(paged.totalPages);
+      setPage(paged.page);
+      setStats({
+        totalVehicles: statsData.totalVehicles,
+        totalStock: statsData.totalStock,
+        lowStock: statsData.lowStock,
+        outOfStock: statsData.outOfStock,
+      });
     } catch {
       showToast('Failed to load vehicles', 'error');
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  useEffect(() => { fetchVehicles(0); }, [fetchVehicles]);
+
+  const handlePageChange = (newPage) => {
+    setLoading(true);
+    fetchVehicles(newPage);
   };
 
-  useEffect(() => { fetchVehicles(); }, []);
-
-  const stats = useMemo(() => {
-    const totalVehicles = vehicles.length;
-    const totalStock = vehicles.reduce((sum, v) => sum + (v.quantity || 0), 0);
-    const totalValue = vehicles.reduce((sum, v) => sum + (v.price || 0) * (v.quantity || 0), 0);
-    const lowStock = vehicles.filter((v) => v.quantity > 0 && v.quantity <= 5).length;
-    const outOfStock = vehicles.filter((v) => v.quantity === 0).length;
-    return { totalVehicles, totalStock, totalValue, lowStock, outOfStock };
-  }, [vehicles]);
-
   const handleCreate = async (data) => {
-    const created = await vehicleService.create(data);
-    setVehicles((prev) => [...prev, created]);
+    await vehicleService.create(data);
     setShowCreate(false);
-    showToast(`${created.make} ${created.model} created`);
+    showToast('Vehicle created');
+    fetchVehicles(page);
   };
 
   const handleUpdate = async (data) => {
-    const updated = await vehicleService.update(editVehicle.id, data);
-    setVehicles((prev) => prev.map((v) => (v.id === updated.id ? updated : v)));
+    await vehicleService.update(editVehicle.id, data);
     setEditVehicle(null);
-    showToast(`${updated.make} ${updated.model} updated`);
+    showToast('Vehicle updated');
+    fetchVehicles(page);
   };
 
   const handleDelete = async () => {
     await vehicleService.delete(deleteVehicle.id);
-    setVehicles((prev) => prev.filter((v) => v.id !== deleteVehicle.id));
     showToast(`${deleteVehicle.make} ${deleteVehicle.model} deleted`);
     setDeleteVehicle(null);
+    fetchVehicles(page);
   };
 
   const handleRestock = async () => {
     setRestockSaving(true);
     try {
-      const updated = await vehicleService.restock(restockVehicle.id, parseInt(restockQty));
-      setVehicles((prev) => prev.map((v) => (v.id === updated.id ? updated : v)));
-      showToast(`${updated.make} ${updated.model} restocked with ${restockQty} units`);
+      await vehicleService.restock(restockVehicle.id, parseInt(restockQty));
+      showToast(`${restockVehicle.make} ${restockVehicle.model} restocked`);
       setRestockVehicle(null);
       setRestockQty('');
+      fetchVehicles(page);
     } catch (err) {
       showToast(err.response?.data?.message || 'Restock failed', 'error');
     } finally {
@@ -262,78 +273,81 @@ const Admin = () => {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {vehicles.map((vehicle) => (
-            <div
-              key={vehicle.id}
-              className="group bg-gray-900 border border-gray-800 rounded-2xl p-6 hover:border-gray-700 hover:shadow-xl hover:shadow-black/20 transition-all duration-300 flex flex-col"
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500/20 to-indigo-500/20 border border-blue-500/10 flex items-center justify-center">
-                    <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25m-2.25 0h-2.25m0 0V6.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v4.5M7.5 14.25V18" />
-                    </svg>
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {vehicles.map((vehicle) => (
+              <div
+                key={vehicle.id}
+                className="group bg-gray-900 border border-gray-800 rounded-2xl p-6 hover:border-gray-700 hover:shadow-xl hover:shadow-black/20 transition-all duration-300 flex flex-col"
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500/20 to-indigo-500/20 border border-blue-500/10 flex items-center justify-center">
+                      <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25m-2.25 0h-2.25m0 0V6.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v4.5M7.5 14.25V18" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-white font-semibold">{vehicle.make} {vehicle.model}</h3>
+                      <span className="text-xs text-gray-500 font-medium uppercase tracking-wider">{vehicle.category}</span>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-white font-semibold">{vehicle.make} {vehicle.model}</h3>
-                    <span className="text-xs text-gray-500 font-medium uppercase tracking-wider">{vehicle.category}</span>
-                  </div>
-                </div>
-                {vehicle.quantity === 0 && (
-                  <span className="px-2 py-0.5 rounded-md bg-red-500/15 text-red-400 text-[11px] font-semibold uppercase">Out</span>
-                )}
-              </div>
-
-              <div className="space-y-2.5 flex-1 mb-4">
-                <div className="flex items-center justify-between py-2 border-t border-gray-800/60">
-                  <span className="text-sm text-gray-400">Price</span>
-                  <span className="text-lg font-bold text-white">${vehicle.price?.toLocaleString()}</span>
-                </div>
-                <div className="flex items-center justify-between py-2 border-t border-gray-800/60">
-                  <span className="text-sm text-gray-400">In Stock</span>
-                  {vehicle.quantity === 0 ? (
-                    <span className="text-sm font-semibold text-red-400">0 units</span>
-                  ) : vehicle.quantity <= 5 ? (
-                    <span className="text-sm font-semibold text-amber-400">{vehicle.quantity} units</span>
-                  ) : (
-                    <span className="text-sm font-semibold text-emerald-400">{vehicle.quantity} units</span>
+                  {vehicle.quantity === 0 && (
+                    <span className="px-2 py-0.5 rounded-md bg-red-500/15 text-red-400 text-[11px] font-semibold uppercase">Out</span>
                   )}
                 </div>
-              </div>
 
-              <div className="grid grid-cols-3 gap-2 pt-4 border-t border-gray-800/60">
-                <button
-                  onClick={() => setEditVehicle(vehicle)}
-                  className="flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 hover:border-blue-500/30 transition-all"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
-                  </svg>
-                  Edit
-                </button>
-                <button
-                  onClick={() => { setRestockVehicle(vehicle); setRestockQty(''); }}
-                  className="flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 hover:border-amber-500/30 transition-all"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                  </svg>
-                  Restock
-                </button>
-                <button
-                  onClick={() => setDeleteVehicle(vehicle)}
-                  className="flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 hover:border-red-500/30 transition-all"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                  </svg>
-                  Delete
-                </button>
+                <div className="space-y-2.5 flex-1 mb-4">
+                  <div className="flex items-center justify-between py-2 border-t border-gray-800/60">
+                    <span className="text-sm text-gray-400">Price</span>
+                    <span className="text-lg font-bold text-white">${vehicle.price?.toLocaleString()}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-t border-gray-800/60">
+                    <span className="text-sm text-gray-400">In Stock</span>
+                    {vehicle.quantity === 0 ? (
+                      <span className="text-sm font-semibold text-red-400">0 units</span>
+                    ) : vehicle.quantity <= 5 ? (
+                      <span className="text-sm font-semibold text-amber-400">{vehicle.quantity} units</span>
+                    ) : (
+                      <span className="text-sm font-semibold text-emerald-400">{vehicle.quantity} units</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 pt-4 border-t border-gray-800/60">
+                  <button
+                    onClick={() => setEditVehicle(vehicle)}
+                    className="flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 hover:border-blue-500/30 transition-all"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                    </svg>
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => { setRestockVehicle(vehicle); setRestockQty(''); }}
+                    className="flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 hover:border-amber-500/30 transition-all"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                    </svg>
+                    Restock
+                  </button>
+                  <button
+                    onClick={() => setDeleteVehicle(vehicle)}
+                    className="flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 hover:border-red-500/30 transition-all"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                    </svg>
+                    Delete
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+          <Pagination page={page} totalPages={totalPages} onPageChange={handlePageChange} />
+        </>
       )}
 
       {showCreate && (

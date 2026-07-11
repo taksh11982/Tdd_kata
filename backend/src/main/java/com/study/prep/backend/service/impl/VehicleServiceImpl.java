@@ -1,13 +1,17 @@
 package com.study.prep.backend.service.impl;
 
+import com.study.prep.backend.dto.PagedResponse;
 import com.study.prep.backend.dto.PatchVehicleRequest;
 import com.study.prep.backend.dto.VehicleRequest;
 import com.study.prep.backend.dto.VehicleResponse;
+import com.study.prep.backend.dto.VehicleStatsResponse;
 import com.study.prep.backend.entity.Vehicle;
 import com.study.prep.backend.exception.ResourceNotFoundException;
 import com.study.prep.backend.repository.VehicleRepository;
 import com.study.prep.backend.service.VehicleService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -25,6 +29,42 @@ public class VehicleServiceImpl implements VehicleService {
         return vehicleRepository.findAll().stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    @Override
+    public PagedResponse<VehicleResponse> getAllVehicles(int page, int size) {
+        Page<Vehicle> vehiclePage = vehicleRepository.findAll(PageRequest.of(page, size));
+        List<VehicleResponse> content = vehiclePage.getContent().stream()
+                .map(this::toResponse)
+                .toList();
+        return new PagedResponse<>(
+                content,
+                vehiclePage.getNumber(),
+                vehiclePage.getSize(),
+                vehiclePage.getTotalElements(),
+                vehiclePage.getTotalPages()
+        );
+    }
+
+    @Override
+    public VehicleStatsResponse getStats() {
+        List<Vehicle> all = vehicleRepository.findAll();
+        long totalVehicles = all.size();
+        long totalStock = all.stream().mapToLong(Vehicle::getQuantity).sum();
+        long totalValue = all.stream()
+                .mapToLong(v -> v.getPrice().longValue() * v.getQuantity())
+                .sum();
+        long lowStock = all.stream()
+                .filter(v -> v.getQuantity() > 0 && v.getQuantity() <= 5)
+                .count();
+        long outOfStock = all.stream()
+                .filter(v -> v.getQuantity() == 0)
+                .count();
+        long categories = all.stream()
+                .map(Vehicle::getCategory)
+                .distinct()
+                .count();
+        return new VehicleStatsResponse(totalVehicles, totalStock, totalValue, lowStock, outOfStock, categories);
     }
 
     @Override

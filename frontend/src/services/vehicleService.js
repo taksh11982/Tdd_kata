@@ -1,8 +1,13 @@
 import api from './api';
 
 const vehicleService = {
-  getAll: async () => {
-    const response = await api.get('/vehicles');
+  getAll: async (page = 0, size = 6) => {
+    const response = await api.get('/vehicles', { params: { page, size } });
+    return response.data;
+  },
+
+  getStats: async () => {
+    const response = await api.get('/vehicles/stats');
     return response.data;
   },
 

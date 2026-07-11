@@ -1,9 +1,11 @@
 package com.study.prep.backend.controller;
 
+import com.study.prep.backend.dto.PagedResponse;
 import com.study.prep.backend.dto.PatchVehicleRequest;
 import com.study.prep.backend.dto.RestockRequest;
 import com.study.prep.backend.dto.VehicleRequest;
 import com.study.prep.backend.dto.VehicleResponse;
+import com.study.prep.backend.dto.VehicleStatsResponse;
 import com.study.prep.backend.service.VehicleService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -28,8 +30,15 @@ public class VehicleController {
     }
 
     @GetMapping
-    public ResponseEntity<List<VehicleResponse>> getAllVehicles() {
-        return ResponseEntity.ok(vehicleService.getAllVehicles());
+    public ResponseEntity<PagedResponse<VehicleResponse>> getAllVehicles(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "6") int size) {
+        return ResponseEntity.ok(vehicleService.getAllVehicles(page, size));
+    }
+
+    @GetMapping("/stats")
+    public ResponseEntity<VehicleStatsResponse> getStats() {
+        return ResponseEntity.ok(vehicleService.getStats());
     }
 
     @GetMapping("/search")

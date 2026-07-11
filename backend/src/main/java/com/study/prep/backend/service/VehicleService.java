@@ -1,8 +1,10 @@
 package com.study.prep.backend.service;
 
 import com.study.prep.backend.dto.PatchVehicleRequest;
+import com.study.prep.backend.dto.PagedResponse;
 import com.study.prep.backend.dto.VehicleRequest;
 import com.study.prep.backend.dto.VehicleResponse;
+import com.study.prep.backend.dto.VehicleStatsResponse;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -10,6 +12,10 @@ import java.util.List;
 public interface VehicleService {
 
     List<VehicleResponse> getAllVehicles();
+
+    PagedResponse<VehicleResponse> getAllVehicles(int page, int size);
+
+    VehicleStatsResponse getStats();
 
     VehicleResponse getVehicleById(Long id);
 
