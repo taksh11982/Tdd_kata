@@ -20,4 +20,6 @@ public interface VehicleService {
 
     List<VehicleResponse> searchVehicles(String make, String model, String category,
                                          BigDecimal minPrice, BigDecimal maxPrice);
+
+    VehicleResponse purchaseVehicle(Long id);
 }

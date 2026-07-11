@@ -81,6 +81,11 @@ public class VehicleServiceImpl implements VehicleService {
                 .toList();
     }
 
+    @Override
+    public VehicleResponse purchaseVehicle(Long id) {
+        return null;
+    }
+
     private VehicleResponse toResponse(Vehicle vehicle) {
         return new VehicleResponse(
                 vehicle.getId(),

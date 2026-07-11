@@ -317,4 +317,72 @@ class VehicleServiceImplTest {
 
         assertThat(results).isEmpty();
     }
+
+    @Test
+    void purchaseVehicle_shouldPurchaseSuccessfully() {
+        Long vehicleId = 1L;
+
+        Vehicle vehicle = Vehicle.builder()
+                .id(vehicleId)
+                .make("Toyota")
+                .model("Camry")
+                .category("Sedan")
+                .price(new BigDecimal("25000.00"))
+                .quantity(10)
+                .build();
+
+        Vehicle savedVehicle = Vehicle.builder()
+                .id(vehicleId)
+                .make("Toyota")
+                .model("Camry")
+                .category("Sedan")
+                .price(new BigDecimal("25000.00"))
+                .quantity(9)
+                .build();
+
+        when(vehicleRepository.findById(vehicleId)).thenReturn(Optional.of(vehicle));
+        when(vehicleRepository.save(any(Vehicle.class))).thenReturn(savedVehicle);
+
+        VehicleResponse response = vehicleService.purchaseVehicle(vehicleId);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getQuantity()).isEqualTo(9);
+
+        verify(vehicleRepository, times(1)).save(any(Vehicle.class));
+    }
+
+    @Test
+    void purchaseVehicle_shouldThrowException_whenVehicleNotFound() {
+        Long vehicleId = 99L;
+
+        when(vehicleRepository.findById(vehicleId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> vehicleService.purchaseVehicle(vehicleId))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Vehicle not found");
+
+        verify(vehicleRepository, never()).save(any());
+    }
+
+    @Test
+    void purchaseVehicle_shouldThrowException_whenVehicleIsOutOfStock() {
+        Long vehicleId = 1L;
+
+        Vehicle vehicle = Vehicle.builder()
+                .id(vehicleId)
+                .make("Toyota")
+                .model("Camry")
+                .category("Sedan")
+                .price(new BigDecimal("25000.00"))
+                .quantity(0)
+                .build();
+
+        when(vehicleRepository.findById(vehicleId)).thenReturn(Optional.of(vehicle));
+
+        assertThatThrownBy(() -> vehicleService.purchaseVehicle(vehicleId))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("out of stock");
+
+        verify(vehicleRepository, never()).save(any());
+    }
 }
