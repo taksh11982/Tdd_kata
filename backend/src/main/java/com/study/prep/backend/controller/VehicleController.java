@@ -41,4 +41,11 @@ public class VehicleController {
         vehicleService.deleteVehicle(id);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/{id}/restock")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<VehicleResponse> restockVehicle(@PathVariable Long id,
+                                                          @RequestParam Integer quantity) {
+        return ResponseEntity.ok(vehicleService.restockVehicle(id, quantity));
+    }
 }
