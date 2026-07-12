@@ -39,6 +39,11 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('user', JSON.stringify({ email: data.email, role: data.role }));
     setToken(data.token);
     setUser({ email: data.email, role: data.role });
+    if (data.role === 'ADMIN' || data.role === 'ROLE_ADMIN') {
+      navigate('/admin');
+    } else {
+      navigate('/dashboard');
+    }
   };
 
   const register = async (name, email, password) => {
