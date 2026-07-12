@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Navbar from './components/Navbar/Navbar';
+import Landing from './pages/Landing/Landing';
 import Login from './pages/Login/Login';
 import Register from './pages/Register/Register';
 import Dashboard from './pages/Dashboard/Dashboard';
@@ -26,6 +27,12 @@ const GuestRoute = ({ children }) => {
   return !token ? children : <Navigate to={isAdmin ? '/admin' : '/dashboard'} />;
 };
 
+const LandingRoute = ({ children }) => {
+  const { token, loading, isAdmin } = useAuth();
+  if (loading) return null;
+  return token ? <Navigate to={isAdmin ? '/admin' : '/dashboard'} /> : children;
+};
+
 function App() {
   return (
     <BrowserRouter>
@@ -33,12 +40,12 @@ function App() {
         <div className="min-h-screen bg-gray-950 text-white">
           <Navbar />
           <Routes>
+            <Route path="/" element={<LandingRoute><Landing /></LandingRoute>} />
             <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
             <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
-            <Route path="/" element={<Navigate to="/dashboard" />} />
-            <Route path="*" element={<Navigate to="/dashboard" />} />
+            <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </div>
       </AuthProvider>
