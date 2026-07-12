@@ -161,6 +161,32 @@ The `OpenApiConfig` class configures the API title, description, version, and th
 
 ---
 
+## Development Approach — Test-Driven Development (TDD)
+
+This project was built following **Test-Driven Development (TDD)** practices:
+
+1. **Red** — Write a failing test that defines the desired behavior
+2. **Green** — Write the minimum code necessary to make the test pass
+3. **Refactor** — Clean up the implementation while keeping all tests green
+
+Tests were written **before** the corresponding feature code. The backend service layer (`VehicleServiceImplTest`) has comprehensive unit tests using **JUnit 5** and **Mockito**, covering:
+
+- Vehicle CRUD operations (create, read, update, delete)
+- Purchase flow and stock validation
+- Out-of-stock handling
+- Resource not found scenarios
+- Input validation and error responses
+
+This ensured that business logic was validated at every step before integration.
+
+---
+
+## Deployment
+
+> **Note:** This project is **not deployed** to a live server due to time constraints during the assignment period. It is designed to run locally — see [Getting Started](#getting-started) for setup instructions.
+
+---
+
 ## Design Decisions
 
 - **MySQL database** — persistent relational storage with JPA/Hibernate, configured via environment variables (`DATASOURCE_URL`, `DB_USER`, `DB_PASS`) with sensible defaults

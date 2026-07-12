@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { navigateTo } from './navigation';
 
 const api = axios.create({
   baseURL: '/api',
@@ -16,9 +17,11 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
+      const message = error.response?.data?.message || 'Session expired. Please log in again.';
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      window.location.href = '/login';
+      localStorage.setItem('auth_error', message);
+      navigateTo('/login');
     }
     return Promise.reject(error);
   }

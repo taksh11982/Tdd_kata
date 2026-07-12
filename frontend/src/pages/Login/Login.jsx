@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
@@ -8,6 +8,14 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const authError = localStorage.getItem('auth_error');
+    if (authError) {
+      setError(authError);
+      localStorage.removeItem('auth_error');
+    }
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
