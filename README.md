@@ -7,6 +7,8 @@ A full-stack inventory management system for car dealerships built with **Spring
 ![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)
 
+> **Screenshots:** Application screenshots are available in the [`screenshots/`](./screenshots) directory for a quick visual overview of the UI.
+
 ---
 
 ## Features
