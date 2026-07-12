@@ -194,6 +194,23 @@ This ensured that business logic was validated at every step before integration.
 - Backend is deployed on **Render**
 - CORS is configured to allow the Vercel frontend origin
 
+### How to Login as Admin
+
+**On deployed version:**
+1. Go to [https://tdd-kata-lyart.vercel.app](https://tdd-kata-lyart.vercel.app)
+2. Use the following credentials:
+   - **Email:** `admin@cardealership.com`
+   - **Password:** `admin123`
+3. After login, you will be redirected to the **Admin Panel** where you can create, edit, restock, and delete vehicles
+
+**For local development:**
+1. Start the backend server — the `AdminSeeder` runs on startup and prints the JWT token to the server console
+2. Go to `http://localhost:5173`
+3. Login with the same credentials above
+4. You will be redirected to the Admin Panel
+
+> **Note:** The admin user is auto-seeded on every backend startup. If the database is reset, the same credentials will work again.
+
 ---
 
 ## Design Decisions
