@@ -117,6 +117,7 @@ cd frontend
 npm install
 npm run dev
 ```
+---
 
 App starts at `http://localhost:5173`
 
