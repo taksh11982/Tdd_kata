@@ -134,15 +134,21 @@ const Admin = () => {
 
   const showToast = (message, type = 'success') => setToast({ message, type });
 
-  const fetchVehicles = useCallback(async (p = page) => {
+  const fetchVehicles = useCallback(async (p = 0) => {
     try {
-      const [paged, statsData] = await Promise.all([
+      let [paged, statsData] = await Promise.all([
         vehicleService.getAll(p, 6),
         vehicleService.getStats(),
       ]);
+
+      if (paged.content.length === 0 && p > 0) {
+        paged = await vehicleService.getAll(0, 6);
+        p = 0;
+      }
+
       setVehicles(paged.content);
       setTotalPages(paged.totalPages);
-      setPage(paged.page);
+      setPage(p);
       setStats({
         totalVehicles: statsData.totalVehicles,
         totalStock: statsData.totalStock,
@@ -167,21 +173,21 @@ const Admin = () => {
     await vehicleService.create(data);
     setShowCreate(false);
     showToast('Vehicle created');
-    fetchVehicles(page);
+    fetchVehicles(0);
   };
 
   const handleUpdate = async (data) => {
     await vehicleService.update(editVehicle.id, data);
     setEditVehicle(null);
     showToast('Vehicle updated');
-    fetchVehicles(page);
+    fetchVehicles(0);
   };
 
   const handleDelete = async () => {
     await vehicleService.delete(deleteVehicle.id);
     showToast(`${deleteVehicle.make} ${deleteVehicle.model} deleted`);
     setDeleteVehicle(null);
-    fetchVehicles(page);
+    fetchVehicles(0);
   };
 
   const handleRestock = async () => {
@@ -191,7 +197,7 @@ const Admin = () => {
       showToast(`${restockVehicle.make} ${restockVehicle.model} restocked`);
       setRestockVehicle(null);
       setRestockQty('');
-      fetchVehicles(page);
+      fetchVehicles(0);
     } catch (err) {
       showToast(err.response?.data?.message || 'Restock failed', 'error');
     } finally {

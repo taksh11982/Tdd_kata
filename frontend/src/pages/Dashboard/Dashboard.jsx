@@ -55,15 +55,21 @@ const Dashboard = () => {
   const [totalPages, setTotalPages] = useState(0);
   const [stats, setStats] = useState({ totalVehicles: 0, inStock: 0, outOfStock: 0, categories: 0 });
 
-  const fetchVehicles = useCallback(async (p = page) => {
+  const fetchVehicles = useCallback(async (p = 0) => {
     try {
-      const [paged, statsData] = await Promise.all([
+      let [paged, statsData] = await Promise.all([
         vehicleService.getAll(p, 6),
         vehicleService.getStats(),
       ]);
+
+      if (paged.content.length === 0 && p > 0) {
+        paged = await vehicleService.getAll(0, 6);
+        p = 0;
+      }
+
       setVehicles(paged.content);
       setTotalPages(paged.totalPages);
-      setPage(paged.page);
+      setPage(p);
       setStats({
         totalVehicles: statsData.totalVehicles,
         inStock: statsData.totalVehicles - statsData.outOfStock,
