@@ -185,7 +185,14 @@ This ensured that business logic was validated at every step before integration.
 
 ## Deployment
 
-> **Note:** This project is **not deployed** to a live server due to time constraints during the assignment period. It is designed to run locally — see [Getting Started](#getting-started) for setup instructions.
+| Service   | URL                                                          |
+|-----------|--------------------------------------------------------------|
+| Frontend  | [https://tdd-kata-lyart.vercel.app](https://tdd-kata-lyart.vercel.app) |
+| Backend   | [https://tdd-kata-wf8u.onrender.com](https://tdd-kata-wf8u.onrender.com) |
+
+- Frontend is deployed on **Vercel**
+- Backend is deployed on **Render**
+- CORS is configured to allow the Vercel frontend origin
 
 ---
 
