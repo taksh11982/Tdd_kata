@@ -6,6 +6,8 @@ A full-stack inventory management system for car dealerships built with **Spring
 ![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.5-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-4-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
+![Testing Library](https://img.shields.io/badge/Testing_Library-4-CC3333?style=for-the-badge&logo=testinglibrary&logoColor=white)
 
 > **Screenshots:** Application screenshots are available in the [`screenshots/`](./screenshots) directory for a quick visual overview of the UI.
 
@@ -163,6 +165,56 @@ The `OpenApiConfig` class configures the API title, description, version, and th
 
 ---
 
+## Testing
+
+This project has **50 tests** across the full stack — all passing.
+
+### Backend (20 tests)
+
+| Test Class | Tests | Framework | Type |
+|------------|-------|-----------|------|
+| `VehicleServiceImplTest` | 19 | JUnit 5 + Mockito | Unit |
+| `BackendApplicationTests` | 1 | Spring Boot Test | Integration |
+
+`VehicleServiceImplTest` covers:
+- Vehicle CRUD (create, read, update, delete)
+- Purchase flow and stock validation
+- Out-of-stock handling (returns 400)
+- Restock with validation (zero/negative quantity)
+- Search by make, model, category, price range, and combined filters
+- Resource not found scenarios
+
+`BackendApplicationTests` boots the full Spring context with an H2 in-memory database to verify wiring and configuration.
+
+**Run backend tests:**
+```bash
+cd backend
+./mvnw clean test
+```
+
+### Frontend (30 tests)
+
+| Test File | Tests | Framework | Type |
+|-----------|-------|-----------|------|
+| `Pagination.test.jsx` | 9 | Vitest + React Testing Library | Component |
+| `vehicleService.test.js` | 8 | Vitest + Jest DOM | Service |
+| `SearchBar.test.jsx` | 7 | Vitest + React Testing Library | Component |
+| `Login.test.jsx` | 5 | Vitest + React Testing Library | Component |
+
+Coverage includes:
+- **Pagination** — renders pages, highlights active page, handles ellipsis, disabled prev/next
+- **vehicleService** — getAll (paginated), getStats, create, update, delete, purchase, restock, search
+- **SearchBar** — expand/collapse, search execution, clear filters, active filter badge
+- **Login** — render, register link, empty field errors, auth error display, input handling
+
+**Run frontend tests:**
+```bash
+cd frontend
+npx vitest run
+```
+
+---
+
 ## Development Approach — Test-Driven Development (TDD)
 
 This project was built following **Test-Driven Development (TDD)** practices:
@@ -171,15 +223,7 @@ This project was built following **Test-Driven Development (TDD)** practices:
 2. **Green** — Write the minimum code necessary to make the test pass
 3. **Refactor** — Clean up the implementation while keeping all tests green
 
-Tests were written **before** the corresponding feature code. The backend service layer (`VehicleServiceImplTest`) has comprehensive unit tests using **JUnit 5** and **Mockito**, covering:
-
-- Vehicle CRUD operations (create, read, update, delete)
-- Purchase flow and stock validation
-- Out-of-stock handling
-- Resource not found scenarios
-- Input validation and error responses
-
-This ensured that business logic was validated at every step before integration.
+Tests were written **before** the corresponding feature code. The backend service layer (`VehicleServiceImplTest`) has comprehensive unit tests using **JUnit 5** and **Mockito**. This ensured that business logic was validated at every step before integration.
 
 ---
 
@@ -230,7 +274,8 @@ This project was developed with AI assistance as permitted by the assignment.
 AI was used for:
 - Generating boilerplate code
 - DTO and repository scaffolding
-- Initial unit test structure
+- Initial unit test structure (JUnit 5 + Mockito for backend)
+- Frontend test scaffolding (Vitest + React Testing Library)
 - Documentation assistance
 
 All generated code was reviewed, integrated, modified where necessary, and validated manually.
